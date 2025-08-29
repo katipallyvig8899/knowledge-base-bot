@@ -1,0 +1,32 @@
+{
+  "employee": {
+    "allowed_categories": [
+      "general",
+      "policy",
+      "it"
+    ],
+    "max_access_level": 1
+  },
+  "hr": {
+    "allowed_categories": [
+      "hr",
+      "policy",
+      "general"
+    ],
+    "max_access_level": 2
+  },
+  "engineer": {
+    "allowed_categories": [
+      "technical",
+      "it",
+      "general"
+    ],
+    "max_access_level": 2
+  },
+  "admin": {
+    "allowed_categories": [
+      "*"
+    ],
+    "max_access_level": 10
+  }
+}

@@ -1,0 +1,14 @@
+services:
+  kb-bot:
+    build: .
+    image: kb-bot:latest
+    container_name: kb-bot
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./vectorstore:/app/vectorstore
+      - ./config:/app/config
