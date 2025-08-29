@@ -1,16 +1,35 @@
 import os
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 import argparse
 import glob
-import uuid
-from typing import List, Dict
+from typing import List
 from dotenv import load_dotenv
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_community.vectorstores import Chroma, FAISS
 from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
+# Load env variables
 load_dotenv()
+
+
+def get_embeddings():
+    """Return embeddings based on .env setting"""
+    embedding_model = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+
+    if embedding_model.startswith("text-embedding"):
+        print(f"🔑 Using OpenAI embeddings: {embedding_model}")
+        return OpenAIEmbeddings(
+            model=embedding_model,
+            openai_api_key=os.getenv("OPENAI_API_KEY")
+        )
+    else:
+        print(f"🤗 Using HuggingFace embeddings: {embedding_model}")
+        return HuggingFaceEmbeddings(model_name=embedding_model)
+
 
 def discover_files(source_dir: str) -> List[str]:
     patterns = ["**/*.pdf", "**/*.txt", "**/*.md"]
@@ -18,6 +37,7 @@ def discover_files(source_dir: str) -> List[str]:
     for p in patterns:
         files.extend(glob.glob(os.path.join(source_dir, p), recursive=True))
     return files
+
 
 def load_docs(paths: List[str]):
     docs = []
@@ -30,6 +50,7 @@ def load_docs(paths: List[str]):
             loader = TextLoader(p, encoding="utf-8")
             docs.extend(loader.load())
     return docs
+
 
 def tag_metadata(docs, category: str, access_level: int):
     for d in docs:
@@ -49,6 +70,7 @@ def tag_metadata(docs, category: str, access_level: int):
         d.metadata = meta
     return docs
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--source_dir", default="./data")
@@ -62,27 +84,30 @@ def main():
 
     files = discover_files(args.source_dir)
     if not files:
-        print("No files found to ingest.")
+        print("⚠️ No files found to ingest.")
         return
 
     raw_docs = load_docs(files)
     raw_docs = tag_metadata(raw_docs, args.category, args.access_level)
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=args.split_by, chunk_overlap=args.overlap)
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=args.split_by, 
+        chunk_overlap=args.overlap
+    )
     chunks = splitter.split_documents(raw_docs)
 
-    embeddings = OpenAIEmbeddings(model=os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"))
-
+    embeddings = get_embeddings()
     os.makedirs(args.db, exist_ok=True)
 
     if args.db_type == "chroma":
         vectordb = Chroma.from_documents(chunks, embedding=embeddings, persist_directory=args.db)
         vectordb.persist()
-        print(f"Ingested {len(chunks)} chunks into Chroma at {args.db}")
+        print(f"✅ Ingested {len(chunks)} chunks into Chroma at {args.db}")
     else:
         vectordb = FAISS.from_documents(chunks, embedding=embeddings)
         vectordb.save_local(args.db)
-        print(f"Ingested {len(chunks)} chunks into FAISS at {args.db}")
+        print(f"✅ Ingested {len(chunks)} chunks into FAISS at {args.db}")
+
 
 if __name__ == "__main__":
     main()

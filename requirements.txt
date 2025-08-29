@@ -6,10 +6,11 @@ langchain==0.2.11
 langchain-community==0.2.10
 langchain-openai==0.1.22
 openai==1.45.0
-chromadb==0.5.5
+chromadb==0.5.3
 faiss-cpu==1.8.0.post1
 tiktoken==0.7.0
 pypdf==4.3.1
 unstructured==0.15.9
 python-multipart==0.0.9
 streamlit==1.37.1
+sentry-sdk<2.0.0
